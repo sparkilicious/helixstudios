@@ -1,0 +1,62 @@
+session:
+  # your helixstudios web credentials
+  username: "my_username"
+  password: "my_password"
+
+  # session credentials storage on disk to persist login across script executions.
+  session: "~/.config/helixstudios/session.bin"
+
+  links:
+    members: "https://www.helixstudios.com/members/"
+    videos: "https://www.helixstudios.com/members/videos/"
+
+
+library:
+  # this is the folder where the videos and metadata should be downloaded to.
+  download_root:
+    darwin:  "~/Downloads/helixstudios"
+    linux:   "/data/helixstudios"
+
+  # this only affects the paths to thumbnails in the NFO metadata files. 
+  # Actor/model thumbnails will be placed in folder in the root of the 
+  # library (folder called ".actors"). All NFO files will then reference 
+  # the absolute paths to the model images, so this path should be the 
+  # final resting place for your helixstudios media library.
+  library_root: "/data/helixstudios"
+
+  # Kodi doesn't support absolute paths to each actor's thumbnail file. Instead 
+  # it needs each video folder to contain a ".actors" folder with the images 
+  # of each actor in that folder. This is wasteful, because 1000 videos needs 
+  # 1000 copies of the actors images. Only enable Kodi compatibility if you 
+  # need it.
+  kodi_compatible_actor_thumbnails: false
+
+  # if this preference is turned on, then the original HTML of the video page
+  # will be saved to library folder for each video. This is very useful if 
+  # you want to rebuild the metadata in the future, and not need to redownload
+  # every page from the website again.
+  save_video_page_to_library: true
+  video_page_filename: ".page.html"
+
+  # if turned on, the parsed info from the video pages are stored in JSON
+  # format inside the video folder.
+  save_json_data_to_library: true
+  json_data_filename: ".data.json"
+
+  # if this is set to true, then the still images from the video will also be 
+  # downloaded and stored in a folder along with the video.
+  ### WARNING: NOT IMPLEMENTED YET!
+  save_images: true
+  image_folder: "images"
+
+
+logging:
+  enabled: true
+
+  # where the log file should be placed.
+  file:
+    darwin: "~/Library/Logs/helixstudios.log"
+    linux:  "/var/log/helixstudios.log"
+  
+  level: "DEBUG"   # must be one of: DEBUG INFO ERROR WARNING CRITICAL
+
