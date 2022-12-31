@@ -239,7 +239,7 @@ class HelixSession:
 		successful, False if the file wasn't downloaded because it was already complete.'''
 
 		
-		for _ in range(retries):
+		for i in range(retries):
 			try:
 				self._cleanup()   # remove any wayward request headers
 
