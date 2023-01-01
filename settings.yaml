@@ -6,6 +6,9 @@ session:
   # session credentials storage on disk to persist login across script executions.
   session: "~/.config/helixstudios/session.bin"
 
+  # the helix website can sometimes be sluggish! A long timeout is needed.
+  timeout: 20
+
   links:
     members: "https://www.helixstudios.com/members/"
     videos: "https://www.helixstudios.com/members/videos/"

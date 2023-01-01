@@ -19,8 +19,6 @@ from requests.exceptions import ReadTimeout
 from requests.exceptions import RequestException
 
 
-REQUEST_TIMEOUT = 10  # seconds
-
 CHUNK_SIZE = 32 * 1024  # 32kB
 
 
@@ -139,7 +137,8 @@ class HelixSession:
 		self._session = requests.Session()
 
 		# login
-		resp = self._session.get(members_url, auth=self.auth)
+		resp = self._session.get(members_url, auth=self.auth,
+								 timeout=self._settings.get('timeout', default=10))
 
 		if resp.status_code == 200:
 			log.info('Successful login!')
@@ -179,7 +178,8 @@ class HelixSession:
 		for i in range(retries):
 			try:
 				self._cleanup() 
-				resp = self._session.get(url, stream=False, timeout=REQUEST_TIMEOUT, auth=self.auth)
+				resp = self._session.get(url, stream=False, auth=self.auth,
+										 timeout=self._settings.get('timeout', default=10))
 
 				self._last_page_downloaded = resp.text
 				self._last_url = resp.url
@@ -216,8 +216,8 @@ class HelixSession:
 		for i in range(retries):
 			try:
 				self._cleanup() 
-				resp = self._session.head(url, timeout=REQUEST_TIMEOUT, 
-										  allow_redirects=True, auth=self.auth)
+				resp = self._session.head(url, allow_redirects=True, auth=self.auth,
+										  timeout=self._settings.get('timeout', default=10))
 				
 				return resp.status_code, resp.url, resp.headers
 
@@ -265,7 +265,8 @@ class HelixSession:
 				else:
 					log.info(f'Starting fresh file download...')
 					
-				resp = self._session.get(url, stream=True, timeout=5, auth=self.auth)
+				resp = self._session.get(url, stream=True, auth=self.auth,
+										 timeout=self._settings.get('timeout', default=10))
 				
 				if resp.status_code == 416:
 					log.error(u'HTTP Error 416 - "Range" request was not valid')
