@@ -51,6 +51,7 @@ def cmdline_args():
 	parser.add_argument('settings', help='path to the settings YAML file')
 	parser.add_argument('--page-limit', type=int, help='Max number of video page listings to download')
 	parser.add_argument('--video-limit', type=int, help='Max number of videos to download')
+	parser.add_argument('--retry-count', type=int, default=10, help='Maximum number of failed connection attempts before exiting')
 	parser.add_argument('--force-download-video', default=False, action='store_true', 
 		help="If the video file already exists on disk, don't assume the download is complete, try to resume the download anyway")
 
@@ -83,16 +84,15 @@ def download(args, settings):
 	downloader = HelixDownloader(settings)
 
 	video_count = 0
-	for video_url in downloader.all_video_links(page_limit=args.page_limit):
+	for video_url in downloader.all_video_links(page_limit=args.page_limit, retries=args.retry_count):
 		folder, video_full_path, video_library_path = url_to_download_path(video_url, settings)
 
-		if os.path.isfile(video_full_path) and not args.force_download_video:
-			log.info(f'Video file "{video_library_path}" already exists on disk, skipping download...')
+		if file_already_downloaded(video_full_path, video_library_path, settings) and not args.force_download_video:
 			continue
 
 		log.info(f'Starting video #{video_count}: {video_library_path}')
 
-		status, page_text = downloader.session.get(video_url)
+		status, page_text = downloader.session.get(video_url, retries=args.retry_count)
 		video_page = VideoPage(page_text, downloader.session.last_url)
 
 		os.makedirs(folder, exist_ok=True)
@@ -102,7 +102,7 @@ def download(args, settings):
 
 		# now manage the downloads
 		if not args.metadata_only:
-			download_successful = download_video(video_page, settings, folder, downloader)
+			download_successful = download_video(video_page, settings, folder, downloader, retries=args.retry_count)
 			if download_successful:
 				video_count += 1
 		else:
@@ -126,6 +126,23 @@ def url_to_download_path(url, settings):
 	return folder, video_full_path, video_library_path
 
 
+def file_already_downloaded(video_full_path, video_library_path, settings):
+	'''Return True if this video file has already been downloaded'''
+
+	if os.path.isfile(video_full_path):
+		log.info(f'Video file "{video_library_path}" already exists in download root folder')
+		return True
+
+	# loop over all additional folders and check there too
+	for folder in settings.get_path_list('library', 'additional_library_folders', default=[]):
+		video_path = os.path.join(folder, video_library_path)
+		if os.path.isfile(video_path):
+			log.info(f'Video file "{video_library_path}" already exists in additional library folder "{folder}"')
+			return True
+
+	return False
+
+
 def handle_video_page(video_page, settings, path):
 	'''Handle the download of a single video page, and all associated metadata'''
 
@@ -146,13 +163,17 @@ def dump_metadata(video_page, settings, folder):
 			f.write(json.dumps(video_page.details_dictionary(), indent=4))
 
 
-def download_video(video_page, settings, folder, downloader):
+def download_video(video_page, settings, folder, downloader, retries=10):
 	'''Download the highest quality video to the given folder in the library'''
 
+	if not video_page.downloads:
+		log.warning('No download links found for this video, skipping!')
+		return False
+	
 	best = find_best_quality(video_page.downloads)
 
 	video_path = os.path.join(folder, f'{os.path.basename(folder)}.mp4')
-	status = downloader.session.download(best['link'], video_path)
+	status = downloader.session.download(best['link'], video_path, retries=retries)
 
 	return status
 

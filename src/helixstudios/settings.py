@@ -12,6 +12,24 @@ from .utils import dict_diver
 from .utils import dict_diver_set
 
 
+def localise_path(settings_value, location):
+	'''Take a string/dict from the settings file, and localise it, i.e. if it's 
+	a dict, choose the correct platform entry, and also expand any user path prefixes.'''
+
+	if isinstance(settings_value, (dict, SettingsContainer)):
+		# this path is a dictionary, need to do a platform lookup
+		if sys.platform not in settings_value:
+			raise KeyError(f'no entry for platform "{sys.platform}" found for setting: {" -> ".join(location)}')
+
+		path = settings_value[sys.platform]
+	elif isinstance(settings_value, str):
+		path = settings_value
+	else:
+		raise TypeError(f'unrecognised value for setting {" -> ".join(location)}')
+
+	return os.path.expanduser(path)
+
+
 class SettingsYAML:
 	'''A container for the YAML settings file.'''
 
@@ -31,6 +49,9 @@ class SettingsYAML:
 
 	def get_path(self, *location, default=None):
 		return self._raw_settings.get_path(*location, default=default)
+
+	def get_path_list(self, *location, default=None):
+		return self._raw_settings.get_path_list(*location, default=default)
 
 
 class SettingsContainer:
@@ -70,16 +91,18 @@ class SettingsContainer:
 		path based on platform.'''
 
 		value = self.get(*location, default=default)
-		if isinstance(value, (dict, SettingsContainer)):
-			# this path is a dictionary, need to do a platform lookup
-			if sys.platform not in value:
-				raise KeyError(f'no entry for platform "{sys.platform}" found for path: {" -> ".join(location)}')
+		return localise_path(value, location)
 
-			path = value[sys.platform]
-		elif isinstance(value, str):
-			path = value
+	def get_path_list(self, *location, default=None):
+		'''Get a list of paths.'''
+
+		paths = self.get(*location, default=default)
+		if isinstance(paths, str):
+			# this is just one string path, wrap it in a list
+			return [localise_path(paths, location)]
+
+		elif isinstance(paths, list):
+			return [localise_path(p, location) for p in paths]
+
 		else:
-			raise TypeError(f'unrocgnised value for path {" -> ".join(location)}')
-
-		return os.path.expanduser(path)
-
+			raise TypeError(f'unrecognised type for path list setting {" -> ".join(location)}')

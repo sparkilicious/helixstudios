@@ -26,7 +26,7 @@ class HelixDownloader:
 	def session(self):
 		return self._session
 
-	def all_video_links(self, page_limit=None, video_limit=None) -> Iterable[str]:
+	def all_video_links(self, page_limit=None, video_limit=None, retries=10) -> Iterable[str]:
 		'''Iterate over all videos links on all pages, starting from the beginning,
 		limiting the total number of either video-listing pages or videos'''
 
@@ -36,7 +36,7 @@ class HelixDownloader:
 		next_page_url = self._settings['session']['links']['videos']
 		
 		while True:
-			status_code, page_text = self.session.get(next_page_url)
+			status_code, page_text = self.session.get(next_page_url, retries=retries)
 
 			page = VideoListingPage(page_text, self.session.last_url)
 			for video_link in page.all_videos():
@@ -52,11 +52,11 @@ class HelixDownloader:
 
 			next_page_url = page.next_page
 
-	def all_video_pages(self, page_limit=None, video_limit=None) -> Iterable[VideoPage]:
+	def all_video_pages(self, page_limit=None, video_limit=None, retries=10) -> Iterable[VideoPage]:
 		'''Iterate over all videos, downloading the pages for each and yield the video pages'''
 
-		for link in self.all_video_links(page_limit=page_limit, video_limit=video_limit):
-			status, page_text = self.session.get(link)
+		for link in self.all_video_links(page_limit=page_limit, video_limit=video_limit, retries=retries):
+			status, page_text = self.session.get(link, retries=retries)
 
 			page = VideoPage(page_text, self.session.last_url)
 			yield page

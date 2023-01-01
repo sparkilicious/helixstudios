@@ -17,8 +17,16 @@ library:
     darwin:  "~/Downloads/helixstudios"
     linux:   "/data/helixstudios"
 
+  # additional library folders are only used to determine whether a file has
+  # been downloaded previously or not. Useful if you store your library on 
+  # external HDDs. No movies will ever be downloaded to these folders. The 
+  # folders listed here don't need to exist, you can mix linux/macos/windows 
+  # paths however you want!
+  additional_library_folders:
+    - "/Volumes/Files/helixstudios"
+
   # this only affects the paths to thumbnails in the NFO metadata files. 
-  # Actor/model thumbnails will be placed in folder in the root of the 
+  # Actor/model thumbnails will be placed in a folder in the root of the 
   # library (folder called ".actors"). All NFO files will then reference 
   # the absolute paths to the model images, so this path should be the 
   # final resting place for your helixstudios media library.
@@ -28,7 +36,7 @@ library:
   # it needs each video folder to contain a ".actors" folder with the images 
   # of each actor in that folder. This is wasteful, because 1000 videos needs 
   # 1000 copies of the actors images. Only enable Kodi compatibility if you 
-  # need it.
+  # need it. For a JellyFin library, keep this set to False.
   kodi_compatible_actor_thumbnails: false
 
   # if this preference is turned on, then the original HTML of the video page
