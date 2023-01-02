@@ -9,6 +9,7 @@ import copy
 import logging
 
 from helixstudios import HelixSession
+from helixstudios import VideoPage
 from helixstudios import VideoListingPage
 from helixstudios import SettingsContainer
 
@@ -69,5 +70,9 @@ if __name__ == '__main__':
 	vlp = VideoListingPage(vid_list, VIDEO_LISTING_URL)
 
 	# download the first video and save
-	download_page(sess, vlp.all_videos[0], 'video.html')
+	vid_text = download_page(sess, vlp.all_videos().pop(), 'video.html')
+	vid_page = VideoPage(vid_text, VIDEO_LISTING_URL)
+
+	# download the first model on that page
+	download_page(sess, vid_page.cast.pop()['actor_page'], 'model.html')
 

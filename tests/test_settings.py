@@ -75,7 +75,7 @@ class SettingsContainerTestCase(unittest.TestCase):
 			self.sc.get_path('key4')
 
 		# make sure the exception text is right
-		self.assertEqual(e.exception.args[0], 'no entry for platform "freebsd" found for path: key4')
+		self.assertEqual(e.exception.args[0], 'no entry for platform "freebsd" found for setting: key4')
 
 	def test_nested_lookup(self):
 		'''Ensure nested lookups work as expected.'''

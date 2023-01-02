@@ -2,6 +2,7 @@
 
 '''Parse the video page for all video metadata and links.'''
 
+import re
 import bs4
 
 from bs4 import BeautifulSoup
@@ -11,7 +12,9 @@ from collections import namedtuple
 
 Tag = namedtuple('Tag', ['tag'])
 TagClass = namedtuple('TagClass', ['tag', 'cls'])
+TagClassAttr = namedtuple('TagClassAttr', ['tag', 'cls', 'attr'])
 TagId = namedtuple('TagId', ['tag', 'id'])
+TagIdAttr = namedtuple('TagId', ['tag', 'id', 'attr'])
 
 def base_url(url):
 	'''Return the base URL for any link, just the protocol
@@ -49,28 +52,10 @@ class Page:
 		return self._base_url
 
 	def find(self, item, *args, **kwargs):
-		if isinstance(item, Tag):
-			return self.page.find(item.tag, *args, **kwargs)
-		elif isinstance(item, TagClass):
-			return self.page.find(item.tag, *args,
-								  attrs={'class': item.cls}, **kwargs)
-		elif isinstance(item, TagId):
-			return self.page.find(item.tag, *args,
-								  attrs={'id': item.id}, **kwargs)
-		else:
-			return self.page.find(item, *args, **kwargs)
+		return find_dispatch(self.page.find, item, *args, **kwargs)
 
 	def find_all(self, item, *args, **kwargs):
-		if isinstance(item, Tag):
-			return self.page.find_all(item.tag, *args, **kwargs)
-		elif isinstance(item, TagClass):
-			return self.page.find_all(item.tag, *args,
-								  attrs={'class': item.cls}, **kwargs)
-		elif isinstance(item, TagId):
-			return self.page.find_all(item.tag, *args,
-								  attrs={'id': item.id}, **kwargs)
-		else:
-			return self.page.find_all(item, *args, **kwargs)
+		return find_dispatch(self.page.find_all, item, *args, **kwargs)
 	
 
 def _flatten_iter(tag, paragraph_delimiter='\n'):
@@ -93,4 +78,47 @@ def flatten_html(tags, paragraph_delimiter='\n'):
 	'''Take a list of BS tags, flatten all HTML to text.'''
 	return ''.join(_flatten_iter(tags, paragraph_delimiter=paragraph_delimiter))
 
-	
+
+def find_dispatch(find_func, search_obj, *args, **kwargs):
+	'''A dispatch function to call the find/find_all function with 
+	the correct args, based on the search object provided.'''
+
+	if isinstance(search_obj, Tag):
+		return find_func(search_obj.tag, *args, **kwargs)
+	elif isinstance(search_obj, TagClass):
+		return find_func(search_obj.tag, *args,
+						 attrs={'class': search_obj.cls}, **kwargs)
+	elif isinstance(search_obj, TagClassAttr):
+		obj = find_func(search_obj.tag, *args,
+						attrs={'class': search_obj.cls}, **kwargs)
+		return _attr_lookup(obj, search_obj.attr)
+	elif isinstance(search_obj, TagId):
+		return find_func(search_obj.tag, *args,
+						 attrs={'id': search_obj.id}, **kwargs)
+	elif isinstance(search_obj, TagIdAttr):
+		obj = find_func(search_obj.tag, *args,
+						attrs={'id': search_obj.id}, **kwargs)
+		return _attr_lookup(obj, search_obj.attr)
+	else:
+		raise TypeError('search object is not a search tuple')
+
+
+def _attr_lookup(obj, attr):
+	'''For a given object returned by the find/find_all functions,
+	return the named attribute of the tags.'''
+
+	if not obj:
+		return obj  # obj is None or empty list
+	elif isinstance(obj, bs4.element.Tag):
+		return obj.get(attr)
+	elif isinstance(obj, list):
+		return [_attr_lookup(o) for o in obj]
+	else:
+		raise TypeError(f'unrecognised type: {type(obj)}')
+
+
+def cleanup_string(my_str):
+	'''Strip all unprintable characters from a string and collapse
+	them all into a single space.'''
+
+	return re.sub(r'\s+', ' ', my_str)

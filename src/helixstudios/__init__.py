@@ -17,4 +17,6 @@ from .parse_video import VideoPage
 from .parse_video import date_text_to_date_object
 from .parse_video import video_page_url_to_video_name
 
+from .parse_model import ModelPage
+
 from .downloader import find_best_quality

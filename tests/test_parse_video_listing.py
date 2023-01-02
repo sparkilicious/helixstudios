@@ -23,7 +23,7 @@ class VideoListingPageTestCase(unittest.TestCase):
 		'''Ensure the parser picks out all video links'''
 		# make sure at least 40 videos were found
 		self.assertGreater(len(self.vlp.all_videos()), 40)
-		print(self.vlp.all_videos()[0])
+		
 
 	def test_next_page(self):
 		'''Ensure the parser picks out the next page link'''

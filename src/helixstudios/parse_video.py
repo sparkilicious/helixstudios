@@ -11,6 +11,7 @@ from bs4 import Comment
 from bs4 import BeautifulSoup
 
 from .parse_utils import Tag, TagClass, TagId
+from .parse_utils import TagClassAttr, TagIdAttr
 from .parse_utils import Page, flatten_html
 
 DATE_FORMAT = '%Y-%m-%d'
@@ -26,12 +27,12 @@ VIDEO_STUDIO = TagClass('span', 'studio-name')
 VIDEO_DIRECTOR = TagClass('span', 'info-item director')
 VIDEO_INFO_ITEMS = TagClass('div', 'info-items')
 
-LINK_BANNER_IMAGE = TagId('img', 'titleImage')
-LINK_VIDEO_THUMBNAIL = TagClass('video', 'video-js vjs-default-skin')
+LINK_BANNER_IMAGE = TagIdAttr('img', 'titleImage', 'src')
+LINK_VIDEO_THUMBNAIL = TagClassAttr('video', 'video-js vjs-default-skin', 'poster')
 
 VIDEO_CAST_SECTION = TagClass('div', 'video-cast')
 VIDEO_CAST_MEMBER = TagClass('a', 'thumbnail-link')
-VIDEO_CAST_THUMBNAIL = TagClass('img', 'pure-img lazyload thumbnail-img')
+VIDEO_CAST_THUMBNAIL = TagClassAttr('img', 'pure-img lazyload thumbnail-img', 'src')
 
 TAG_SECTION = TagClass('div', 'video-tags-wrapper')
 DOWNLOAD_SECTION = TagClass('div', 'downloads-link-wrapper')
@@ -159,21 +160,21 @@ class VideoPage(Page):
 	@cached_property
 	def banner_image_link(self):
 		'''A link to the banner image across the top of the page'''
-		return self.find(LINK_BANNER_IMAGE)['src']
+		return self.find(LINK_BANNER_IMAGE)
 	
 	@cached_property
 	def video_thumbnail_image_link(self):
 		'''A link to the banner image across the top of the page'''
-		return self.find(LINK_VIDEO_THUMBNAIL)['poster']
+		return self.find(LINK_VIDEO_THUMBNAIL)
 	
 	def _cast_member_section_iter(self):
 		'''Iterate through the cast members, and return one section
 		for each actor'''
 
 		for link in self.find(VIDEO_CAST_SECTION).find_all(VIDEO_CAST_MEMBER):
-			actor_page = self._base_url.rstrip('/') + link['href']
-			actor_name = link['title']
-			actor_thumbnail = link.find(VIDEO_CAST_THUMBNAIL)['src']
+			actor_page = self._base_url.rstrip('/') + link.get('href', '')
+			actor_name = link.get('title', '')
+			actor_thumbnail = link.find(VIDEO_CAST_THUMBNAIL)
 			
 			yield {
 				'actor_page': actor_page,
@@ -194,10 +195,10 @@ class VideoPage(Page):
 			return
 
 		for link in results.find_all(items):
-			link_prefix = '' if link[attr_name].startswith('http') else self._base_url.rstrip('/')
+			link_prefix = '' if link.get(attr_name, '').startswith('http') else self._base_url.rstrip('/')
 			yield {
 				'item': flatten_html(link.contents),
-				'link': link_prefix + link[attr_name]
+				'link': link_prefix + link.get(attr_name, '')
 			}
 
 	@cached_property
