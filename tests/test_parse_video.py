@@ -3,6 +3,7 @@
 '''Using the downloaded sample video_listing.html file, make sure 
 the parser extracts all the needed information.'''
 
+import json
 import datetime
 import unittest
 
@@ -130,6 +131,11 @@ class VideoPageTestCase(unittest.TestCase):
 		'''Make sure the view count is correctly extracted from the comment.'''
 
 		self.assertGreater(self.vp.like_count, 0)
+
+	def test_details_dict_is_json_serialisable(self):
+		'''Make sure the details dictionary can be successfully JSON serialised.'''
+
+		json.dumps(self.vp.details_dictionary())
 
 
 

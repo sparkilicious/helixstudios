@@ -174,7 +174,8 @@ class VideoPage(Page):
 		for link in self.find(VIDEO_CAST_SECTION).find_all(VIDEO_CAST_MEMBER):
 			actor_page = self._base_url.rstrip('/') + link.get('href', '')
 			actor_name = link.get('title', '')
-			actor_thumbnail = link.find(VIDEO_CAST_THUMBNAIL)
+			_actor_img_tag = link.find('img', attrs={'class': 'pure-img lazyload thumbnail-img'})
+			actor_thumbnail = _actor_img_tag.get('src', '')
 			
 			yield {
 				'actor_page': actor_page,
