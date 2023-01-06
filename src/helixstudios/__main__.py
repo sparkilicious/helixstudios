@@ -3,6 +3,7 @@
 '''A library for maintaining a local library of video from HelixStudios'''
 
 import os
+import sys
 import json
 import logging
 import argparse
@@ -171,9 +172,14 @@ def download_video(video_page, settings, folder, downloader, retries=10):
 		return False
 	
 	best = find_best_quality(video_page.downloads)
-
 	video_path = os.path.join(folder, f'{os.path.basename(folder)}.mp4')
+
+	sys.stderr.write(f'{os.path.basename(video_path)}.mp4 - "{video_page.title}"\n')
+	sys.stderr.flush()
+
 	status = downloader.session.download(best['link'], video_path, retries=retries)
+	if status:
+		downloader.session._print_progress(100.0)
 
 	return status
 

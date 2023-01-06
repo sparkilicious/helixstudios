@@ -2,6 +2,7 @@
 
 '''random utilities that are useful across the application'''
 
+import math
 import logging
 
 from logging import handlers
@@ -45,3 +46,14 @@ def configure_logging(path, level=logging.DEBUG, backups=7):
 def disable_logging():
 	logging.basicConfig(handlers=[logging.NullHandler()])
 	return logging.getLogger('')
+
+
+# taken from https://stackoverflow.com/a/14822210
+SIZE_NAMES = ("B", "KB", "MB", "GB", "TB", "PB", "EB", "ZB", "YB")
+def bytes_to_string(size_bytes):
+   if size_bytes == 0:
+       return "0 B"
+   i = int(math.floor(math.log(size_bytes, 1024)))
+   p = math.pow(1024, i)
+   s = round(size_bytes / p, 2)
+   return f'{size_bytes / p:.2f} {SIZE_NAMES[i]}'

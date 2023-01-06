@@ -4,10 +4,12 @@
 a session across different runs of the application'''
 
 import os
+import sys
 import time
 import pprint
 import pickle
 import logging
+import threading
 
 import requests
 import requests.utils
@@ -18,6 +20,7 @@ from requests.exceptions import ReadTimeout
 # parent class to all requests exceptions
 from requests.exceptions import RequestException
 
+from .utils import bytes_to_string
 
 CHUNK_SIZE = 32 * 1024  # 32kB
 
@@ -38,6 +41,15 @@ class HelixSession:
 		self._settings = settings
 		self._last_page_downloaded = None
 		self._last_url = None
+
+		self._downloaded = None
+		self._last_downloaded = None
+		self._filesize = None
+		self._closing = threading.Event()
+
+		self._prog = threading.Thread(target=self._progress_printer)
+		self._prog.daemon = True
+		self._prog.start()
 
 		if start_session:
 			self.start_session()
@@ -233,6 +245,39 @@ class HelixSession:
 			log.error(f'All HEAD request attempts have failed for url: {url}')
 			raise RuntimeError('all HEAD request attempts failed')
 
+	def _print_progress(self, progress, speed=''):
+		'''Print a progress message to the terminal'''
+
+		sys.stderr.write(f'   {progress:.1f}%  {speed}                    \r')
+		sys.stderr.flush()
+
+	def _progress_printer(self):
+		'''Periodically print the '''
+
+		PRINT_PROGRESS_EVERY = 3   # seconds
+
+		while True:
+			if self._closing.is_set():
+				break
+
+			if self._downloaded is not None:
+				if self._last_downloaded is not None:
+					# calculate the download speed
+					bytes_downloaded = self._downloaded - self._last_downloaded
+					speed_b_per_s = bytes_downloaded / PRINT_PROGRESS_EVERY
+					speed = f'[{bytes_to_string(speed_b_per_s)}/s]'
+				else:
+					speed = ''
+
+				# important to record this variable before the print, so we don't 
+				# give up the GIL and introduce a timing bug
+				self._last_downloaded = self._downloaded
+
+				progress = (100.0 * self._downloaded) / self._filesize
+				self._print_progress(progress, speed=speed)
+
+			self._closing.wait(PRINT_PROGRESS_EVERY)
+
 	def download(self, url, destination_path, download_in_place=False, retries=20):
 		'''Download a large file in chunks and write it to disk at the given destination.
 		Resume partially downloaded files where possible. Return True if the download was
@@ -250,14 +295,15 @@ class HelixSession:
 
 				# perform a head request on the link to find out how big it is
 				status_code, final_url, headers = self.head(url)
-				filesize = int(headers.get('Content-Length'))
+
+				self._filesize = int(headers.get('Content-Length'))
 				
 				# check for the destination file on disk
 				if os.path.isfile(dest):
 					size_on_disk = os.path.getsize(dest)
 
-					if filesize > size_on_disk:
-						log.info(f'Resuming download from byte {size_on_disk}, {filesize - size_on_disk} bytes left')
+					if self._filesize > size_on_disk:
+						log.info(f'Resuming download from byte {size_on_disk}, {self._filesize - size_on_disk} bytes left')
 						self.set_start_byte_offset(size_on_disk)
 					else:
 						log.info(f'File download was already complete')
@@ -279,6 +325,9 @@ class HelixSession:
 					for chunk in resp.iter_content(chunk_size=CHUNK_SIZE):
 						if len(chunk) > 0:     # filter out keep-alive chunks
 							f.write(chunk)
+						self._downloaded = f.tell()
+
+				self._downloaded = None
 				
 				if not download_in_place:
 					# move the file into place
