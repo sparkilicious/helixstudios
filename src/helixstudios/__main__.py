@@ -174,7 +174,7 @@ def download_video(video_page, settings, folder, downloader, retries=10):
 	best = find_best_quality(video_page.downloads)
 	video_path = os.path.join(folder, f'{os.path.basename(folder)}.mp4')
 
-	sys.stderr.write(f'{os.path.basename(video_path)}.mp4 - "{video_page.title}"\n')
+	sys.stderr.write(f'{os.path.basename(video_path)} - "{video_page.title}"\n')
 	sys.stderr.flush()
 
 	status = downloader.session.download(best['link'], video_path, retries=retries)

@@ -327,7 +327,9 @@ class HelixSession:
 							f.write(chunk)
 						self._downloaded = f.tell()
 
+				# reset both so progress isn't printed until the next file
 				self._downloaded = None
+				self._last_downloaded = None
 				
 				if not download_in_place:
 					# move the file into place
