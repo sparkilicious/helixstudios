@@ -19,4 +19,7 @@ from .parse_video import video_page_url_to_video_name
 
 from .parse_model import ModelPage
 
+from .parse_m3u8 import M3U8Stream
+from .parse_m3u8 import M3U8PlaylistFile
+
 from .downloader import find_best_quality

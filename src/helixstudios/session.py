@@ -44,6 +44,7 @@ class HelixSession:
 
 		self._downloaded = None
 		self._last_downloaded = None
+		self._progress_printing_disabled = False
 		self._filesize = None
 		self._closing = threading.Event()
 
@@ -260,7 +261,10 @@ class HelixSession:
 			if self._closing.is_set():
 				break
 
-			if self._downloaded is not None:
+			if self._progress_printing_disabled:
+				pass
+
+			elif self._downloaded is not None:
 				if self._last_downloaded is not None:
 					# calculate the download speed
 					bytes_downloaded = self._downloaded - self._last_downloaded
@@ -283,7 +287,6 @@ class HelixSession:
 		Resume partially downloaded files where possible. Return True if the download was
 		successful, False if the file wasn't downloaded because it was already complete.'''
 
-		
 		for i in range(retries):
 			try:
 				self._cleanup()   # remove any wayward request headers
@@ -296,8 +299,18 @@ class HelixSession:
 				# perform a head request on the link to find out how big it is
 				status_code, final_url, headers = self.head(url)
 
+				if status_code == 404:
+					log.error(f'Received 404 for URL: {url}')
+					log.error('  -> this video file will be skipped!')
+					return
+
 				self._filesize = int(headers.get('Content-Length'))
 				
+				if self._filesize == 0:
+					log.error(f'Filesize is zero for URL {url}')
+					log.error('  -> this video file will be skipped!')
+					return
+
 				# check for the destination file on disk
 				if os.path.isfile(dest):
 					size_on_disk = os.path.getsize(dest)
@@ -318,6 +331,7 @@ class HelixSession:
 					log.error(u'HTTP Error 416 - "Range" request was not valid')
 					log.error(u'This file cannot be downloaded')
 					return
+
 				elif 400 <= resp.status_code <= 499:
 					raise LoggedOut()
 
@@ -354,4 +368,27 @@ class HelixSession:
 				log.error(f' ---> {str(e)}')
 				log.error(f'Sleeping for {sleep_time} seconds for connection to recover...')
 				time.sleep(sleep_time)
+
+	def _vod_ts_files_for_playlist(self, playlist_url):
+		'''Given a playlist URL, generate the download URLs for all the TS files'''
+
+		status_code, page = self.get(playlist_url)
+		if status_code != 200:
+			raise ValueError('unable to download playlist file')
+
+		
+
+	def download_vod(self, url, destination_path, download_in_place=False, retries=20):
+		'''Given a URL to a streaming video M3U8 file, download all the TS files 
+		for the highest resolution version of the video.'''
+
+		# during VOD downloads, disable the progress dialog because it's too
+		# complicated to manage the dance with the download function
+		self._progress_printing_disabled = False
+
+		# streaming videos will never be resumed, delete anything that exists there
+		if os.path.isfile(destination_path):
+			os.remote(destination_path)
+
+
 

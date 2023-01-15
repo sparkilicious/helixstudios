@@ -3,6 +3,7 @@
 '''Using the downloaded sample video_listing.html file, make sure 
 the parser extracts all the needed information.'''
 
+import re
 import json
 import datetime
 import unittest
@@ -131,6 +132,15 @@ class VideoPageTestCase(unittest.TestCase):
 		'''Make sure the view count is correctly extracted from the comment.'''
 
 		self.assertGreater(self.vp.like_count, 0)
+
+	def test_vod_playlist_url(self):
+		'''Make sure the streaming player source URL is extracted successfully.'''
+
+		self.assertIsNotNone(re.match(
+			r'https://www\.helixstudios\.com/m3u8/[0-9]+\.m3u8',
+			self.vp.vod_playlist_url
+			)
+		)
 
 	def test_details_dict_is_json_serialisable(self):
 		'''Make sure the details dictionary can be successfully JSON serialised.'''

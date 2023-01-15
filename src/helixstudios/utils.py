@@ -2,8 +2,11 @@
 
 '''random utilities that are useful across the application'''
 
+import os
 import math
 import logging
+
+from urllib.parse import urlparse, urlsplit, urlunsplit
 
 from logging import handlers
 from os.path import join, dirname
@@ -57,3 +60,44 @@ def bytes_to_string(size_bytes):
    p = math.pow(1024, i)
    s = round(size_bytes / p, 2)
    return f'{size_bytes / p:.2f} {SIZE_NAMES[i]}'
+
+
+def base_url(url):
+	'''Return the base URL for any link, just the protocol
+	and hostname section.'''
+
+	uri = urlparse(url)
+	return f'{uri.scheme}://{uri.netloc}/'
+
+def parent_url(url, clean_query=True, clean_fragment=True):
+	'''Return the url for 1 directory up from the current'''
+
+	uri = urlparse(url)
+	updated = uri._replace(path = os.path.dirname(uri.path))
+
+	if clean_query:
+		updated = updated._replace(query='')
+
+	if clean_fragment:
+		updated = updated._replace(fragment='')
+
+	return updated.geturl()
+
+def localise_url(url, source_url):
+	'''Build a full url to some content harvested on the page
+	at source_url. Automatically choose the correct url pieces
+	to make the URL complete.'''
+
+	uri = urlparse(url)
+
+	if uri.scheme == '' and uri.netloc == '':
+		# this is either host level or relative
+		if url.startswith('/'):
+			# host level
+			return base_url(source_url) + url[1:]
+		else:
+			# relative to source level
+			return parent_url(source_url) + '/' + url
+	else:
+		# this is already a full URL with a hostname at least - no edits
+		return uri.geturl()

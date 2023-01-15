@@ -101,6 +101,13 @@ def download(args, settings):
 		# dump the metadata to disk
 		handle_video_page(video_page, settings, folder)
 
+		if 'Internal Error' in video_page.webpage_title:
+			log.error('   ***************************')
+			log.error('   ** INTERNAL SERVER ERROR **')
+			log.error('   **  SKIPPING THIS VIDEO  **')
+			log.error('   ***************************')
+			return
+
 		# now manage the downloads
 		if not args.metadata_only:
 			download_successful = download_video(video_page, settings, folder, downloader, retries=args.retry_count)
@@ -160,8 +167,11 @@ def dump_metadata(video_page, settings, folder):
 
 	# write the json data
 	if settings.get('library', 'save_json_data_to_library'):
-		with open(os.path.join(folder, settings.get('library', 'json_data_filename')), 'w') as f:
-			f.write(json.dumps(video_page.details_dictionary(), indent=4))
+		if video_page.details_dictionary_is_json_serialisable:
+			with open(os.path.join(folder, settings.get('library', 'json_data_filename')), 'w') as f:
+				f.write(json.dumps(video_page.details_dictionary(), indent=4))
+		else:
+			log.error('Cannot write details dictionary to disk -- not JSON serialisable!')
 
 
 def download_video(video_page, settings, folder, downloader, retries=10):
@@ -180,6 +190,9 @@ def download_video(video_page, settings, folder, downloader, retries=10):
 	status = downloader.session.download(best['link'], video_path, retries=retries)
 	if status:
 		downloader.session._print_progress(100.0)
+	else:
+		sys.stderr.write(f'   Download Error!                    \n')
+		sys.stderr.flush()
 
 	return status
 

@@ -5,23 +5,19 @@
 import re
 import bs4
 
+from .utils import base_url
+
 from bs4 import BeautifulSoup
-from urllib.parse import urlparse
 
 from collections import namedtuple
+from functools import cached_property
+
 
 Tag = namedtuple('Tag', ['tag'])
 TagClass = namedtuple('TagClass', ['tag', 'cls'])
 TagClassAttr = namedtuple('TagClassAttr', ['tag', 'cls', 'attr'])
 TagId = namedtuple('TagId', ['tag', 'id'])
 TagIdAttr = namedtuple('TagId', ['tag', 'id', 'attr'])
-
-def base_url(url):
-	'''Return the base URL for any link, just the protocol
-	and hostname section.'''
-
-	uri = urlparse(url)
-	return f'{uri.scheme}://{uri.netloc}/'
 
 
 class Page:
@@ -50,6 +46,13 @@ class Page:
 	def base_url(self):
 		'''The base URL if this page, just the protocol and hostname'''
 		return self._base_url
+
+	@cached_property
+	def webpage_title(self):
+		'''The HTML title of the webpage'''
+		title = self.page.find('title')
+		if title:
+			return title.string
 
 	def find(self, item, *args, **kwargs):
 		return find_dispatch(self.page.find, item, *args, **kwargs)

@@ -12,6 +12,7 @@ from helixstudios import HelixSession
 from helixstudios import VideoPage
 from helixstudios import VideoListingPage
 from helixstudios import SettingsContainer
+from helixstudios import M3U8PlaylistFile
 
 
 SETTINGS = {
@@ -76,3 +77,9 @@ if __name__ == '__main__':
 	# download the first model on that page
 	download_page(sess, vid_page.cast.pop()['actor_page'], 'model.html')
 
+	# download the m3u8 playlist file from the VOD player
+	playlist_text = download_page(sess, vid_page.vod_playlist_url, 'vod_playlist.m3u8')
+	pl = M3U8PlaylistFile(playlist_text, vid_page.vod_playlist_url)
+
+	# download the m3u8 file from the VOD player
+	download_page(sess, pl.highest_bandwidth_stream.get('url'), 'vod_stream.m3u8')

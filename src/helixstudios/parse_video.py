@@ -3,6 +3,7 @@
 '''Parse the video page for all video metadata and links.'''
 
 import re
+import json
 import datetime
 
 from functools import cached_property
@@ -37,6 +38,8 @@ VIDEO_CAST_THUMBNAIL = TagClassAttr('img', 'pure-img lazyload thumbnail-img', 's
 TAG_SECTION = TagClass('div', 'video-tags-wrapper')
 DOWNLOAD_SECTION = TagClass('div', 'downloads-link-wrapper')
 PHOTO_SECTION = TagClass('div', 'main-section video-gallery')
+
+STREAMING_PLAYER_TAG = TagId('video', 'sparkplayer2')
 
 ITEMS = Tag('a')
 
@@ -218,6 +221,26 @@ class VideoPage(Page):
 		return [photo.get('link') for photo in self._section_iter(
 			PHOTO_SECTION, ITEMS, 'href')]
 
+	@cached_property
+	def vod_playlist_url(self):
+		'''Download the VOD embedded player list of available streaming quality
+		versions of the video.'''
+
+		video_tag = self.find(STREAMING_PLAYER_TAG)
+		if video_tag is None:
+			raise ValueError('streaming play could not be found')
+
+		source_tag = video_tag.find('source')
+		if source_tag is None:
+			raise ValueError('streaming player has no "source" tag')
+
+		src = source_tag.get('src')
+
+		# take off the leading / if there is one
+		src = src[1:] if src.startswith('/') else src
+
+		return None if src is None else self.base_url + src
+
 	def details_dictionary(self):
 		'''Return all details parsed from the page as a dictionary'''
 
@@ -237,6 +260,17 @@ class VideoPage(Page):
 			'downloads':                   self.downloads,
 			'photo_link_list':             self.photo_link_list
 		}
+
+	@property
+	def details_dictionary_is_json_serialisable(self):
+		'''Return true if the details dictionary can be flattened to JSON'''
+
+		try:
+			json.dumps(video_page.details_dictionary())
+		except Exception:
+			return False
+		else:
+			return True
 
 
 DAYS_AGO_REGEX = re.compile(r'([0-9]+) days? ago', re.IGNORECASE)

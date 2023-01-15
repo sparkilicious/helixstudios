@@ -61,6 +61,8 @@ class HelixDownloader:
 			page = VideoPage(page_text, self.session.last_url)
 			yield page
 
+		
+
 
 def _resolution(quality_description):
 	'''Return the resolution as an int, 0 if it cannot be found.'''

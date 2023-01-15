@@ -31,6 +31,9 @@ class VideoListingPageTestCase(unittest.TestCase):
 		self.assertTrue(
 			self.vlp.next_page.startswith(VIDEO_LISTING_URL))
 
+	def test_webpage_title(self):
+		'''Make sure the title is correctly parsed'''
+		print(self.vlp.webpage_title)
 
 
 if __name__ == '__main__':
